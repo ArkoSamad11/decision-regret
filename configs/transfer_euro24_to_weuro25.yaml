@@ -1,0 +1,26 @@
+# Primary transfer study.
+#
+# Fit on UEFA Euro 2024, evaluate on UEFA Women's Euro 2025. Both pairs confirmed
+# present in competitions.json with non-null match_available_360. Roughly one year
+# apart and both international tournaments, so the shift under test is the playing
+# population rather than era or competition format.
+extends: base.yaml
+
+seed: 20260807
+
+data:
+  competitions:
+    train:
+      - {competition_id: 55, season_id: 282, name: "UEFA Euro 2024"}
+    test:
+      - {competition_id: 53, season_id: 315, name: "UEFA Women's Euro 2025"}
+
+evaluation:
+  recalibrate_on_target: true
+  recalibration_fraction: 0.2   # held out from target; never used to fit the value model
+  bootstrap_unit: match         # NOT action -- actions within a match are correlated
+  report:
+    - brier_decomposition
+    - reliability_diagram
+    - expected_calibration_error
+    - regret_per_90_ci

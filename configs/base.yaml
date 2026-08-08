@@ -1,0 +1,65 @@
+# Base configuration. Every other config in this directory extends this one and
+# overrides only what differs (see configs/transfer_euro24_to_weuro25.yaml).
+#
+# This file governs the in-competition pass: ingest UEFA Euro 2024, split it by
+# match, train the deterministic-features LightGBM baseline, calibrate, evaluate.
+# A `data.competitions.test` list turns the same run into a transfer study —
+# see the transfer_*.yaml configs for that.
+
+seed: 20260807
+
+paths:
+  raw: data/raw
+  parquet: data/parquet
+  artifacts: artifacts
+  runs: runs
+  docs: docs
+
+data:
+  competitions:
+    train:
+      - {competition_id: 55, season_id: 282, name: "UEFA Euro 2024"}
+    test: []
+
+split:
+  unit: match          # MUST be match, never action -- see SPEC.md §8.3
+  train: 0.60
+  validation: 0.15
+  calibration: 0.10
+  test: 0.15
+
+features:
+  action_window: 3      # trailing actions of context per row
+  max_players: 22        # freeze-frame padding width (frame branch, M6+)
+
+labels:
+  horizon: 10            # actions of lookahead for scores/concedes
+
+model:
+  lightgbm:
+    n_estimators: 500
+    learning_rate: 0.05
+    num_leaves: 31
+    min_child_samples: 20
+    early_stopping_rounds: 30
+
+calibration:
+  method: isotonic       # falls back to Platt below ~2000 calibration rows
+
+support:
+  k_neighbors: 20
+  min_support: 0.35      # [OPEN] SPEC.md §9.4 -- default until tuned to a 15-50% gate rate
+
+evaluation:
+  recalibrate_on_target: false
+  recalibration_fraction: 0.2
+  bootstrap_unit: match  # MUST be match -- action-level bootstrap understates the CI
+  bootstrap_draws: 10000
+  report:
+    - brier_decomposition
+    - reliability_diagram
+    - expected_calibration_error
+
+serve:
+  host: "0.0.0.0"
+  port: 8000
