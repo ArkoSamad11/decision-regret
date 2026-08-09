@@ -31,11 +31,14 @@ report: calibrate
 transfer: report
 	$(PYTHON) -m xdr.evaluation.transfer --config transfer_euro24_to_weuro25.yaml
 
-serve-db: calibrate
+support: calibrate
+	$(PYTHON) -m xdr.models.support --config $(CONFIG)
+
+serve-db: calibrate support
 	$(PYTHON) -m xdr.serve.store --config $(CONFIG)
 
-# ingest -> features -> train -> calibrate -> report -> transfer -> serve-db.
-# Ablation/support-gate stages join this chain in later milestones.
+# ingest -> features -> train -> calibrate -> report -> transfer -> support -> serve-db.
+# Ablation (encoder) joins this chain in a later milestone.
 reproduce: transfer serve-db
 
 serve:
