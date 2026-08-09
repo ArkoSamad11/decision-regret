@@ -79,3 +79,32 @@ class HealthResponse(BaseModel):
     status: str
     model_version: str | None
     run_id: str | None
+
+
+class TransferMetrics(BaseModel):
+    """SPEC.md §11.2 item 2: source vs target vs recalibrated, per label."""
+
+    competitions: list[str]
+    n: int
+    brier: float
+    reliability: float
+    resolution: float
+    uncertainty: float
+    ece: float
+    calibration_method: str | None = None
+    n_recalibration_rows: int | None = None
+
+
+class TransferLabelReport(BaseModel):
+    source: TransferMetrics
+    target_before: TransferMetrics
+    target_after: TransferMetrics
+    ece_degradation_ratio: float | None
+    ece_recovered_fraction: float | None
+
+
+class TransferReport(BaseModel):
+    config_name: str
+    run_id: str
+    label_scores: TransferLabelReport
+    label_concedes: TransferLabelReport

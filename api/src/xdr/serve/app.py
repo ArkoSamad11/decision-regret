@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from xdr.config import load_config
 from xdr.serve import store
-from xdr.serve.schemas import CalibrationReport, HealthResponse, MatchSummary, Moment
+from xdr.serve.schemas import CalibrationReport, HealthResponse, MatchSummary, Moment, TransferReport
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
@@ -129,3 +129,12 @@ def calibration(split: str = "test") -> CalibrationReport:
         curve=curve,
         n=report["label_scores"]["n"],
     )
+
+
+@app.get("/transfer", response_model=TransferReport)
+def transfer() -> TransferReport:
+    path = _artifacts_dir / "transfer.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="No transfer study available")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    return TransferReport(**report)

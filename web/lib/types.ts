@@ -74,3 +74,30 @@ export interface HealthResponse {
   model_version: string | null;
   run_id: string | null;
 }
+
+export interface TransferMetrics {
+  competitions: string[];
+  n: number;
+  brier: number;
+  reliability: number;
+  resolution: number;
+  uncertainty: number;
+  ece: number;
+  calibration_method: string | null;
+  n_recalibration_rows: number | null;
+}
+
+export interface TransferLabelReport {
+  source: TransferMetrics;
+  target_before: TransferMetrics;
+  target_after: TransferMetrics;
+  ece_degradation_ratio: number | null;
+  ece_recovered_fraction: number | null;
+}
+
+export interface TransferReport {
+  config_name: string;
+  run_id: string;
+  label_scores: TransferLabelReport;
+  label_concedes: TransferLabelReport;
+}

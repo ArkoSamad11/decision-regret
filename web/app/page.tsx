@@ -1,8 +1,9 @@
-import { getCalibration, listMatches, listMoments } from "@/lib/api";
+import { getCalibration, getTransfer, listMatches, listMoments } from "@/lib/api";
 import Pitch from "@/components/Pitch";
 import OptionLedger from "@/components/OptionLedger";
 import Reliability from "@/components/Reliability";
 import MomentPicker from "@/components/MomentPicker";
+import Transfer from "@/components/Transfer";
 
 export default async function Page({
   searchParams,
@@ -36,6 +37,7 @@ export default async function Page({
     [...moments].sort((a, b) => b.chosen.value - a.chosen.value)[0];
 
   const calibration = await getCalibration("test").catch(() => null);
+  const transfer = await getTransfer().catch(() => null);
 
   return (
     <main style={{ padding: "var(--space-4) var(--space-5)", maxWidth: 1100, margin: "0 auto" }}>
@@ -44,7 +46,8 @@ export default async function Page({
         <p style={{ color: "var(--color-text-muted)", maxWidth: 640 }}>
           Every on-ball action has alternatives the player declined. This pass ships the
           calibration layer -- match-level Brier decomposition and reliability -- against a real
-          LightGBM baseline trained on UEFA Euro 2024. The counterfactual option fan (declined
+          LightGBM baseline trained on UEFA Euro 2024, plus a cross-tournament transfer study
+          against UEFA Women&apos;s Euro 2025. The counterfactual option fan (declined
           passes/carries/shots and the regret gap) is upcoming work; see docs/DECISIONS.md.
         </p>
       </header>
@@ -109,6 +112,17 @@ export default async function Page({
             <p style={{ color: "var(--color-text-muted)" }}>No calibration report available.</p>
           )}
         </div>
+      </section>
+
+      <section style={{ marginTop: "var(--space-5)" }}>
+        <h2 style={{ fontSize: "1rem", color: "var(--color-text-muted)", marginBottom: "var(--space-2)" }}>
+          Transfer study -- source vs. a competition the model never trained on
+        </h2>
+        {transfer ? (
+          <Transfer report={transfer} />
+        ) : (
+          <p style={{ color: "var(--color-text-muted)" }}>No transfer study available.</p>
+        )}
       </section>
 
       <footer

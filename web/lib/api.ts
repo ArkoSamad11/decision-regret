@@ -2,7 +2,7 @@
 // next.config.mjs rewrites to API_ORIGIN server-side -- the backend URL never
 // reaches the client bundle (SPEC.md §14).
 
-import type { CalibrationReport, HealthResponse, MatchSummary, Moment } from "./types";
+import type { CalibrationReport, HealthResponse, MatchSummary, Moment, TransferReport } from "./types";
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${baseUrl()}${path}`, { cache: "no-store" });
@@ -45,4 +45,8 @@ export function getMoment(momentId: string) {
 
 export function getCalibration(split: string) {
   return getJson<CalibrationReport>(`/calibration?split=${split}`);
+}
+
+export function getTransfer() {
+  return getJson<TransferReport>("/transfer");
 }

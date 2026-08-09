@@ -28,12 +28,15 @@ calibrate: train
 report: calibrate
 	$(PYTHON) -m xdr.evaluation.report --config $(CONFIG) --split test
 
+transfer: report
+	$(PYTHON) -m xdr.evaluation.transfer --config transfer_euro24_to_weuro25.yaml
+
 serve-db: calibrate
 	$(PYTHON) -m xdr.serve.store --config $(CONFIG)
 
-# ingest -> features -> train -> calibrate -> report -> serve-db.
-# Transfer/ablation/support-gate stages join this chain in later milestones.
-reproduce: report serve-db
+# ingest -> features -> train -> calibrate -> report -> transfer -> serve-db.
+# Ablation/support-gate stages join this chain in later milestones.
+reproduce: transfer serve-db
 
 serve:
 	$(PYTHON) -m uvicorn xdr.serve.app:app --host 0.0.0.0 --port 8000
