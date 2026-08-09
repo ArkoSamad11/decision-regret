@@ -51,9 +51,25 @@ def test_match_moments_validates_against_schema():
     moments = res.json()
     assert len(moments) > 0
     first = moments[0]
-    assert first["regret"] is None  # no counterfactual layer in this pass
-    assert first["options"] == []
     assert "value" in first["chosen"]
+    assert isinstance(first["options"], list)
+    # regret is either genuinely null (unsupported) or a non-negative float
+    # (SPEC.md §10/§13) -- never coerced to 0.0.
+    assert first["regret"] is None or first["regret"] >= 0
+    for option in first["options"]:
+        assert option["scored"] is (option["value"] is not None)
+
+
+@pytest.mark.skipif(not HAS_ARTIFACTS, reason="requires a built artifacts/xdr.duckdb")
+def test_counterfactual_layer_produces_some_real_regret():
+    """M8 landed: at least one served moment, somewhere, must have a real
+    (non-null) regret with a real `best` alternative -- otherwise the
+    counterfactual layer would be wired in but silently inert."""
+    match_id = client.get("/matches").json()[0]["match_id"]
+    moments = client.get(f"/matches/{match_id}/moments").json()
+    with_regret = [m for m in moments if m["regret"] is not None]
+    assert len(with_regret) > 0
+    assert all(m["best"] is not None for m in with_regret)
 
 
 @pytest.mark.skipif(not HAS_ARTIFACTS, reason="requires a built artifacts/xdr.duckdb")

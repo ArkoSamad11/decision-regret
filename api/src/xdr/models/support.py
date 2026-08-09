@@ -44,6 +44,33 @@ class SupportIndex:
     reference_distances: np.ndarray
 
 
+def save_support_index(support: SupportIndex, path: Path) -> None:
+    """Persists fields as a plain dict, not the `SupportIndex` instance
+    itself. Run as `python -m xdr.models.support`, this module executes as
+    `__main__`, so a `SupportIndex` instance built during that run pickles
+    with `__module__ == "__main__"` and fails to unpickle in every other
+    entrypoint (store.py, options.py, tests) that imports the class properly
+    as `xdr.models.support.SupportIndex`. A plain dict of primitives and
+    third-party sklearn objects (which are always importable from their real
+    installed location, regardless of how this script was invoked) sidesteps
+    the problem instead of fighting pickle's module-identity check.
+    """
+    joblib.dump(
+        {
+            "scaler": support.scaler,
+            "index": support.index,
+            "k": support.k,
+            "columns": support.columns,
+            "reference_distances": support.reference_distances,
+        },
+        path,
+    )
+
+
+def load_support_index(path: Path) -> SupportIndex:
+    return SupportIndex(**joblib.load(path))
+
+
 def numeric_feature_columns(columns: list[str], categorical_columns: list[str]) -> list[str]:
     """SPEC.md §9.2's distance space must be pure-numeric; socceraction's raw
     actiontype/bodypart/result columns are native LightGBM categoricals
@@ -105,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     val_mask = df["game_id"].isin(run_meta["splits"]["validation"])
 
     support = fit_support_index(X[train_mask], X[val_mask], k=config.support.k_neighbors)
-    joblib.dump(support, artifacts_dir / "support_index.joblib")
+    save_support_index(support, artifacts_dir / "support_index.joblib")
 
     # Sanity diagnostic only, not the SPEC.md §9.3 acceptance check. Support
     # is `1 - percentile_rank` against the validation set's OWN distance
