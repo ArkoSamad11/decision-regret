@@ -236,4 +236,171 @@ rate 0.86% (SPEC.md §1.3 target: 0.5-3%); in-competition test-split Brier 0.006
 reliability diagram; Next.js dashboard rendering all of it live in a browser, including
 the interactive moment picker and pitch view.
 
+---
+
+## 2026-08-08 — M5: transfer study reuses the source model rather than retraining
+
+**Context:** `configs/transfer_euro24_to_weuro25.yaml`'s `data.competitions.train` list is
+identical to `base.yaml`'s (same competition, same seed), so a match-level split computed
+from either config produces the same partition of the same matches.
+**Decision:** `evaluation/transfer.py` does not retrain. It loads the LightGBM boosters and
+source calibrators `artifacts/` already holds from the ordinary `train`/`calibrate` run,
+applies them to Women's Euro 2025 (ingested and feature-built the same way as the source
+competition), and only fits something new for the recalibration step: an isotonic (or
+Platt, if under 2,000 rows) calibrator on a held-out 20% of the target, evaluated on the
+disjoint remaining 80% (`test_transfer.py` asserts the split is disjoint).
+**Rejected:** A separate training run under the transfer config — would have produced an
+identical model at the cost of a second multi-minute training pass, and invited the two
+configs' splits to silently drift apart in the future.
+**Reversibility:** cheap.
+**Result:** `label_scores` ECE degrades 3.21x on transfer (SPEC.md §1.3's plausible range
+is 1.5-5x — inside it) and recalibration recovers 45.8% of the gap. `label_concedes`
+degrades a smaller 1.41x and recalibration recovers all of it and then some (206.9%,
+i.e. the recalibrated target ECE ends up below the source's own in-competition figure).
+Both are reported as genuine findings per SPEC.md §1.3 ("no significant degradation is a
+valid finding"), not tuned toward a preferred outcome.
+
+---
+
+## 2026-08-08 — M7: support gate omits the frame-embedding half of SPEC.md §9.2's space
+
+**Context:** SPEC.md §9.2 specifies the k-NN reference space as "action features
+standardized, plus the frame embedding." The frame embedding comes from the DeepSets
+encoder (M6), which remains deferred (see below).
+**Decision:** Fit the gate on the standardized numeric action-feature space alone (155
+columns — every `run_meta["feature_columns"]` entry that isn't one of socceraction's raw
+categorical columns, keeping the already-numeric `*_onehot` counterparts instead).
+`numeric_feature_columns` takes whatever columns it's given, so adding a frame embedding
+later is a call-site change, not a rewrite.
+**Rejected:** Blocking the support gate on M6 — would have meant no counterfactual layer
+at all this pass, for a partial-space gate that still catches the OOD case SPEC.md §9.3
+requires (`test_support.py`: a point far outside the training cluster in every action-
+feature dimension scores 0.0).
+**Reversibility:** cheap, but the gap is real, not silent: a candidate that's bizarre only
+in its player configuration (e.g. a pass into a crowd of covering defenders that geometry
+alone doesn't flag) won't be caught until M6 lands.
+**Result on real data:** k=20, 155 numeric columns. Real historical (in-distribution)
+test-split actions gate at 36.06%, matching the ~35% (`min_support`) the percentile-rank
+construction predicts for same-distribution data by itself — confirmed by direct
+calculation, not just observation, and documented in `support.py`'s own inline comment so
+a future reader doesn't mistake this for "the gate is too aggressive." (An earlier version
+of this same comment claimed the opposite — "expect near 0%" — before working through why
+that's mathematically wrong for a percentile-rank gate; caught before it shipped.)
+
+---
+
+## 2026-08-08 — M8: counterfactual outcome handling takes SPEC.md §10's sanctioned default (b)
+
+**Context:** SPEC.md §10 flags this as "the largest single quality decision in the
+project": score every hypothetical action assuming it succeeds (default b, an explicit
+upper bound), or train a completion-probability model to marginalize over (default a,
+"correct, costs perhaps four hours").
+**Decision:** Default (b) for this pass. Every candidate's `result_id` is set to `success`;
+`value`/`regret` are upper bounds on forgone value, not point estimates. Stated in
+`counterfactual/score.py`'s module docstring, in this entry, and in the README — SPEC.md
+§10 is explicit that silently doing (b) and describing it as (a) is not acceptable, and it
+would have been easy to let "regret" read as a point estimate without the caveat attached
+everywhere it's surfaced.
+**Rejected:** Training a pass-completion model — the stated four-hour upgrade path,
+deferred alongside M6 for the same reason (session time), tracked as follow-up work below.
+**Reversibility:** moderate — every consumer of `value`/`regret` (the dashboard, this
+README, any future analysis) would need to stop treating the number as an upper bound once
+(a) lands; not a schema change, but a meaning change.
+
+---
+
+## 2026-08-08 — M8: counterfactual feature rows reuse the real feature pipeline, not a reimplementation
+
+**Context:** Scoring a hypothetical action requires the exact same feature vector shape
+the model was trained on. Reimplementing socceraction's feature functions by hand for a
+synthetic action risked silently diverging from the real computation (the exact failure
+mode SPEC.md §3 warns about for coordinates, generalized to features).
+**Decision:** `counterfactual/score.py` builds the same `[a0, a1, a2, a3]` gamestates
+structure `features/actions.py` feeds socceraction's `XFNS` list, with `a0` (the action
+itself) replaced by N candidate rows and `a1`/`a2`/`a3` (real preceding actions) broadcast
+unchanged across all N. The same feature functions then produce feature rows that are
+bit-for-bit consistent with training, by construction rather than by care.
+**Rejected:** Hand-computing each of the ~155 feature columns for a synthetic action —
+would have needed independently re-deriving what every socceraction feature function does
+and staying in sync with it if socceraction's implementation ever changes.
+**Reversibility:** cheap — the reused functions are exactly the ones `features/actions.py`
+already depends on.
+
+---
+
+## 2026-08-08 — M8: counterfactuals computed for the served subset, not the full action corpus
+
+**Context:** `list_moments` only ever serves the top 100 actions per match by value; a full
+counterfactual set (enumeration + feature construction + prediction + support gating) for
+all ~110,000 ingested Euro 2024 actions would cost far more runtime than the dashboard
+displaying any of it requires.
+**Decision:** `add_counterfactuals` computes real `best`/`regret`/`options`/
+`unscored_count` for exactly the top 100 pass/dribble/shot actions per match by value
+(5,100 moments across 51 matches) — matching `list_moments`'s default `limit` exactly, so
+every moment served under default query params has genuine counterfactual data, not a
+subset of a subset. Every other ingested action keeps the same honest `NULL`/`[]` this
+project shipped before M8 existed, now for a documented runtime reason rather than because
+the layer didn't exist yet.
+**Rejected:** (a) Computing it for all ~110k actions — correct but unnecessary for a
+working dashboard, and untested at that scale this pass. (b) Restricting to *all* action
+types rather than pass/dribble/shot — "declined a pass/carry/shot instead" is not a
+coherent framing for a duel, foul, or interception; SPEC.md §10 doesn't rule this out
+explicitly but doesn't require it either.
+**Reversibility:** cheap — raising `COUNTERFACTUAL_TOP_K` or dropping the `DECISION_TYPES`
+filter changes what gets processed, not the schema or the arithmetic. SPEC.md §11.2 item
+4's full-corpus xDR distribution (mean per 90 across every action) is follow-up work,
+listed below.
+**Result:** 114,971 candidates enumerated, 51.0% gated below the support floor (SPEC.md's
+target band is 15-50% — just above it, not retuned further this pass). Of the 5,100
+processed moments, 2,794 (54.8%) have a real non-null regret; mean regret across those is
+0.0341 (95% CI [0.0271, 0.0419], match-level bootstrap, 2,000 draws), median 0.0221, 39.9%
+exactly zero (the player's actual choice already matched or beat every scored
+alternative), max 0.969.
+
+---
+
+## 2026-08-08 — Windows-specific: `lightgbm`/`scikit-learn` import order caused a native segfault on small predict batches
+
+**Context:** `Booster.predict()` on a small batch (tens to low-thousands of rows — exactly
+the size of one moment's counterfactual candidate set) crashed the Python process natively
+(`OSError: exception: access violation reading 0x0000000000000000`) the first time M8
+called it, despite the identical code path working fine on the ~16,000-row test split in
+`evaluation/report.py`. Bisected to import order: the crash reproduces if `lightgbm` is
+imported before any of scikit-learn's compiled extensions, and disappears if
+`sklearn.neighbors` (or similar) is imported first — an OpenMP-runtime initialization-
+order conflict between the two libraries' bundled native runtimes, specific to this
+Windows build.
+**Decision:** `import sklearn.neighbors` at the top of `xdr/__init__.py`, which every real
+entrypoint runs before any `xdr.*` submodule gets a chance to import `lightgbm` on its own.
+Verified directly: removing the line reproduces the crash on the same predict call;
+restoring it, the identical call succeeds every time.
+**Rejected:** Reordering imports individually in every module that happens to import both
+libraries — fragile (depends on import order at every call site, forever) versus a single
+process-wide fix at the package root.
+**Reversibility:** cheap, and worth revisiting if the machine or library versions change —
+this is a workaround for a specific native runtime conflict, not a design decision.
+
+---
+
+## 2026-08-08 — Known gaps carried forward from this pass (M5, M7, M8 landed)
+
+- **M6 (DeepSets frame encoder) and its ablation against the LightGBM baseline are still
+  not built.** `xdr/models/encoder.py` and `xdr/evaluation/ablation.py` remain to be
+  written. The support gate (M7) therefore still runs on the action-feature branch alone
+  (see above); the counterfactual layer does not use frame information beyond visible-
+  teammate pass targets.
+- **The completion-probability model (SPEC.md §10 default (a)) is not built.** Regret is
+  an upper bound, not a point estimate, until it is.
+- **The counterfactual layer covers ~5,100 of 109,985 ingested actions**, not the full
+  corpus — a runtime scope cut (see above), not a claim about the rest.
+- **Docker, CI, and Vercel/host deployment (SPEC.md §14, M9) are in progress**, picked up
+  immediately after this entry.
+- **Test coverage is 54% on `api/src/xdr/`**, down from the prior pass's 59% in
+  percentage terms only -- M5/M7/M8 added ~400 lines of new orchestration code
+  (`evaluation/transfer.py`, `serve/store.py`'s `add_counterfactuals`) that, like
+  `data/ingest.py` and `evaluation/report.py` before them, are exercised end-to-end
+  against real data (see the results throughout this log) but not by narrow pytest unit
+  tests. The new pure-logic modules do have direct unit tests: `test_counterfactual.py`,
+  `test_support.py`, `test_transfer.py`, all passing (55 passed, 1 skipped total).
+  Still short of SPEC.md §1.2's ≥85% target.
 
