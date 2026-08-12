@@ -1,0 +1,28 @@
+# Railway's CLI upload respects .gitignore by default, which excludes
+# artifacts/ -- exactly what the Docker image needs baked in (SPEC.md §14).
+# A .railwayignore, when present, replaces .gitignore for upload purposes
+# entirely rather than adding to it, so this file is the full exclude list,
+# minus artifacts/ and *.duckdb.
+
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+node_modules/
+.next/
+web/.env.local
+web/tsconfig.tsbuildinfo
+
+data/
+runs/
+
+.env
+.DS_Store
+
+.claude/
+.git/

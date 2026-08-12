@@ -37,4 +37,10 @@ ENV XDR_ROOT=/app
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
-CMD ["uvicorn", "xdr.serve.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form on purpose. Railway (and Fly, and Render) inject the port to
+# listen on as $PORT and route external traffic to it; a container that
+# hardcodes 8000 gets no traffic and fails its healthcheck for a reason
+# nothing in the logs explains. Exec form would pass the literal string
+# "${PORT:-8000}" to uvicorn instead of expanding it, so this needs a shell.
+# The default keeps `docker run -p 8000:8000 xdr-api` working locally.
+CMD ["sh", "-c", "uvicorn xdr.serve.app:app --host 0.0.0.0 --port ${PORT:-8000}"]

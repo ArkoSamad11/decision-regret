@@ -10,3 +10,15 @@ api/htmlcov
 data
 runs
 *.md
+
+# 80 MB of k-NN reference vectors, and the serving path never opens them.
+# The support gate runs at database *build* time (store.py's
+# add_counterfactuals, reached only from build_database / `make serve-db`),
+# which happens on a workstation before the image is built. What the running
+# API does is read artifacts/xdr.duckdb, where the gate's verdicts are
+# already recorded per option.
+#
+# This is 87% of the artifacts payload. Leave it out unless a route starts
+# scoring candidates live, at which point it has to come back -- the image
+# would otherwise fail at first request, not at build.
+artifacts/support_index.joblib

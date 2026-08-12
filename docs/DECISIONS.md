@@ -404,3 +404,31 @@ this is a workaround for a specific native runtime conflict, not a design decisi
   `test_support.py`, `test_transfer.py`, all passing (55 passed, 1 skipped total).
   Still short of SPEC.md §1.2's ≥85% target.
 
+---
+
+## 2026-08-12 — `multimethod<2` pin was applied locally but never captured in pyproject.toml
+
+**Context:** The very first `pip install` of this project (see the "Toolchain" entry
+above) hit `ImportError: cannot import name 'overload' from 'multimethod'` -- `pandera`
+0.17.x (pulled in transitively by `socceraction`) imports `overload` from `multimethod`,
+which `multimethod` 2.x removed, and `pandera` declares no upper bound on `multimethod`
+itself. At the time this was fixed with a bare `pip install "multimethod<2"` into the
+local venv and the API ran fine afterward -- but the fix never made it into
+`api/pyproject.toml`, so it lived only in one machine's already-mutated environment. The
+first clean install anywhere else (Railway's Docker build, which starts every install from
+scratch) hit the identical `ImportError` on its first deploy attempt, crashing the
+container before it could bind to a port -- which is why the healthcheck failed with no
+application-level log line at all until `railway logs --deployment` was checked
+specifically.
+**Decision:** Added `"multimethod<2,>=1.9"` to `api/pyproject.toml`'s `dependencies`, with
+a comment explaining why it's needed despite no `xdr` module importing it directly.
+**Rejected:** Pinning `pandera` to an older version instead -- `socceraction` already pins
+the `pandera` range it needs; the actual broken contract is `pandera`-vs-`multimethod`, not
+`socceraction`-vs-`pandera`, so pinning at the layer where the incompatibility actually
+lives keeps the fix minimal.
+**Reversibility:** cheap.
+**Pattern worth naming:** this is the second environment fix (after the lightgbm/sklearn
+import-order workaround) that was applied to a live venv and worked, but wasn't captured
+as a reproducible constraint until a second machine needed the identical fix. An
+environment fix isn't done until it's in a file that ships with the repo.
+

@@ -18,6 +18,13 @@ dependencies = [
     "pyyaml>=6.0,<7",
     "requests>=2.32,<3",
     "joblib>=1.4,<2",
+    # pandera 0.17.x (pulled in by socceraction) imports `overload` from
+    # multimethod, which multimethod 2.x removed -- pip resolves to the
+    # latest multimethod by default since pandera declares no upper bound
+    # itself. Without this pin, a fresh install (any machine, any container)
+    # fails at import time with "cannot import name 'overload' from
+    # 'multimethod'" the first time anything touches socceraction.spadl.
+    "multimethod<2,>=1.9",
 ]
 
 [project.optional-dependencies]
