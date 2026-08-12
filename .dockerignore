@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+web/node_modules
+web/.next
+api/.venv
+api/.pytest_cache
+api/.ruff_cache
+api/htmlcov
+data
+runs
+*.md
