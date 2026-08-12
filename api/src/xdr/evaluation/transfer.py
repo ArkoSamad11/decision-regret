@@ -158,9 +158,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Transfer study [{label}]...")
         result = run_transfer_for_label(label, target_df, X_target, run_meta, config, artifacts_dir)
         report[label] = result
+        before, after = result["target_before"], result["target_after"]
         print(f"  source ece={result['source']['ece']:.5f}")
-        print(f"  target before recal: ece={result['target_before']['ece']:.5f} brier={result['target_before']['brier']:.5f}")
-        print(f"  target after recal:  ece={result['target_after']['ece']:.5f} brier={result['target_after']['brier']:.5f}")
+        print(f"  target before recal: ece={before['ece']:.5f} brier={before['brier']:.5f}")
+        print(f"  target after recal:  ece={after['ece']:.5f} brier={after['brier']:.5f}")
         if result["ece_recovered_fraction"] is not None:
             print(
                 f"  ECE degraded {result['ece_degradation_ratio']:.2f}x on transfer; "

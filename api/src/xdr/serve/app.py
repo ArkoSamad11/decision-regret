@@ -13,7 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from xdr.config import load_config
 from xdr.serve import store
-from xdr.serve.schemas import CalibrationReport, HealthResponse, MatchSummary, Moment, TransferReport
+from xdr.serve.schemas import (
+    CalibrationReport,
+    HealthResponse,
+    MatchSummary,
+    Moment,
+    TransferReport,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 

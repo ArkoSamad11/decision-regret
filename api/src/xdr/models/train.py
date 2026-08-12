@@ -159,7 +159,8 @@ def main(argv: list[str] | None = None) -> int:
             config.model.lightgbm,
         )
         heads[label] = booster
-        print(f"{label}: best iteration {booster.best_iteration}, best val logloss {booster.best_score['valid_0']['binary_logloss']:.5f}")
+        val_logloss = booster.best_score["valid_0"]["binary_logloss"]
+        print(f"{label}: best iteration {booster.best_iteration}, best val logloss {val_logloss:.5f}")
 
     run_id = f"{config.config_name}_{config.config_hash}_{int(time.time())}"
     run_dir = REPO_ROOT / config.paths.runs / run_id

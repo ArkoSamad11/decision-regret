@@ -20,7 +20,10 @@ from xdr.serve import store
 
 @pytest.fixture
 def db_path(tmp_path):
-    matches = pd.DataFrame(
+    # `matches`/`moments` below are read by DuckDB's `execute("... FROM
+    # matches")` calls via frame-introspection replacement scans, not by
+    # explicit reference -- not unused despite ruff's static analysis.
+    matches = pd.DataFrame(  # noqa: F841
         {
             "match_id": ["1", "2"],
             "competition_name": ["Synthetic Cup", "Synthetic Cup"],
@@ -31,7 +34,7 @@ def db_path(tmp_path):
             "mean_value": [0.5, 0.9],
         }
     )
-    moments = pd.DataFrame(
+    moments = pd.DataFrame(  # noqa: F841
         {
             "moment_id": ["1_0", "1_1", "1_2", "2_0", "2_1"],
             "match_id": ["1", "1", "1", "2", "2"],

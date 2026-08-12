@@ -32,7 +32,12 @@ import lightgbm as lgb
 import pandas as pd
 
 from xdr.config import XdrConfig, load_config
-from xdr.counterfactual.options import compute_regret, enumerate_candidates, score_candidates, visible_teammate_points
+from xdr.counterfactual.options import (
+    compute_regret,
+    enumerate_candidates,
+    score_candidates,
+    visible_teammate_points,
+)
 from xdr.models.support import load_support_index, numeric_feature_columns, support_score
 from xdr.models.train import LABEL_COLUMNS, load_features, prepare_matrix
 
@@ -110,7 +115,10 @@ def add_counterfactuals(
     action_window = config.features.action_window
 
     scored = scored.copy()
-    for col in ["best_type_name", "best_end_x", "best_end_y", "best_p_scores", "best_p_concedes", "best_value", "regret"]:
+    best_columns = [
+        "best_type_name", "best_end_x", "best_end_y", "best_p_scores", "best_p_concedes", "best_value", "regret"
+    ]
+    for col in best_columns:
         scored[col] = None
     scored["options_json"] = "[]"
     scored["unscored_count"] = 0
@@ -128,8 +136,12 @@ def add_counterfactuals(
     for (competition_id, season_id, game_id), group in scored.loc[selected_idx].groupby(
         ["competition_id", "season_id", "game_id"]
     ):
-        match_actions, match_frames = _load_match_actions_frames(config, int(competition_id), int(season_id), int(game_id))
-        frame_by_action = match_frames.set_index("action_id")["points"] if not match_frames.empty else pd.Series(dtype=object)
+        match_actions, match_frames = _load_match_actions_frames(
+            config, int(competition_id), int(season_id), int(game_id)
+        )
+        frame_by_action = (
+            match_frames.set_index("action_id")["points"] if not match_frames.empty else pd.Series(dtype=object)
+        )
         pos_by_action_id = pd.Series(match_actions.index, index=match_actions["action_id"])
 
         for idx in group.index:
@@ -233,11 +245,14 @@ def build_database(config: XdrConfig) -> Path:
         .reset_index()
         .rename(columns={"game_id": "match_id"})
     )
-    matches = games.merge(match_agg, on="match_id", how="inner").sort_values(
+    # Not unused despite ruff's static analysis: DuckDB's `execute("... FROM
+    # matches")` below resolves `matches` by variable name via frame
+    # introspection (a "replacement scan"), not by explicit binding.
+    matches = games.merge(match_agg, on="match_id", how="inner").sort_values(  # noqa: F841
         "mean_value", ascending=False
     )
 
-    moments = pd.DataFrame(
+    moments = pd.DataFrame(  # noqa: F841
         {
             "moment_id": scored["game_id"].astype(str) + "_" + scored["action_id"].astype(str),
             "match_id": scored["game_id"].astype(str),
@@ -327,7 +342,7 @@ def list_matches(con: duckdb.DuckDBPyConnection) -> list[dict]:
     ).fetchall()
     cols = ["match_id", "competition_name", "home_team", "away_team", "match_date", "action_count", "mean_value"]
     return [
-        {**dict(zip(cols, r)), "match_id": str(r[0])} for r in rows
+        {**dict(zip(cols, r, strict=True)), "match_id": str(r[0])} for r in rows
     ]
 
 
@@ -347,7 +362,7 @@ def list_moments(
     params.append(limit)
     result = con.execute(query, params)
     cols = [d[0] for d in result.description]
-    return [_row_to_moment(dict(zip(cols, r))) for r in result.fetchall()]
+    return [_row_to_moment(dict(zip(cols, r, strict=True))) for r in result.fetchall()]
 
 
 def get_moment(con: duckdb.DuckDBPyConnection, moment_id: str) -> dict | None:
@@ -358,7 +373,7 @@ def get_moment(con: duckdb.DuckDBPyConnection, moment_id: str) -> dict | None:
     if row is None:
         return None
     cols = [d[0] for d in con.description]
-    return _row_to_moment(dict(zip(cols, row)))
+    return _row_to_moment(dict(zip(cols, row, strict=True)))
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -3,8 +3,6 @@ shaped like real ingest.py output (see conftest.make_synthetic_actions)."""
 
 from __future__ import annotations
 
-import pandas as pd
-
 from xdr.config import Competition, load_config
 from xdr.features.actions import DISPLAY_COLUMNS, build_action_features
 from xdr.features.build import build_features_for_competition, load_competition_actions

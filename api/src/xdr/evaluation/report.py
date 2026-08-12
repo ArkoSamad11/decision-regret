@@ -39,7 +39,6 @@ def evaluate_split(
     def brier_of(d: pd.DataFrame, preds: pd.Series) -> float:
         return float(((preds.loc[d.index] - d["y_true"]) ** 2).mean())
 
-    raw_series = pd.Series(raw_pred, index=eval_df.index)
     calibrated_series = pd.Series(calibrated_pred, index=eval_df.index)
 
     raw_decomp = brier_decomposition(y_true, raw_pred)

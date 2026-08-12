@@ -41,7 +41,9 @@ def visible_teammate_points(frame_points: list[dict]) -> list[dict]:
     return [p for p in frame_points if p.get("teammate") and not p.get("actor")]
 
 
-def enumerate_candidates(start_x: float, start_y: float, attacks_right: bool, visible_teammates: list[dict]) -> pd.DataFrame:
+def enumerate_candidates(
+    start_x: float, start_y: float, attacks_right: bool, visible_teammates: list[dict]
+) -> pd.DataFrame:
     rows = []
     for tm in visible_teammates:
         rows.append(
