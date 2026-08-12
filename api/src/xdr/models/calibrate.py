@@ -13,17 +13,15 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 import joblib
 import lightgbm as lgb
 from sklearn.calibration import _SigmoidCalibration
 from sklearn.isotonic import IsotonicRegression
 
-from xdr.config import XdrConfig, load_config
+from xdr.config import REPO_ROOT, XdrConfig, load_config
 from xdr.models.train import LABEL_COLUMNS, load_features, prepare_matrix
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
 MIN_ROWS_FOR_ISOTONIC = 2000
 
 

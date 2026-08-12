@@ -26,10 +26,8 @@ import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
-from xdr.config import XdrConfig, load_config
+from xdr.config import REPO_ROOT, XdrConfig, load_config
 from xdr.models.train import load_features, prepare_matrix
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 @dataclass

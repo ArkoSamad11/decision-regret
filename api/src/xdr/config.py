@@ -8,13 +8,28 @@ merged, validated XdrConfig back.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel
 
-CONFIG_DIR = Path(__file__).resolve().parents[3] / "configs"
+# Everything the project reads or writes -- configs/, data/, artifacts/, runs/,
+# docs/ -- is addressed relative to the repo root, so the root has to be
+# discoverable at runtime. `parents[3]` walks src/xdr/config.py back up to the
+# checkout, which is correct for an editable install and for `python -m` runs
+# from a clone.
+#
+# It is wrong for a non-editable install: `pip install ./api` copies the package
+# into site-packages, where the same walk lands on the interpreter's lib/
+# directory instead. The API image does exactly that (see api/Dockerfile), and
+# the failure is quiet -- configs/ raises at import, but a missing artifacts/
+# just makes /health report "no_artifacts" and every route return empty.
+#
+# XDR_ROOT is the override for that case. The image sets it to /app.
+REPO_ROOT = Path(os.environ.get("XDR_ROOT") or Path(__file__).resolve().parents[3]).resolve()
+CONFIG_DIR = REPO_ROOT / "configs"
 
 
 class Competition(BaseModel):

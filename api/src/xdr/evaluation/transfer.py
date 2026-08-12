@@ -26,7 +26,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
-from xdr.config import XdrConfig, load_config
+from xdr.config import REPO_ROOT, XdrConfig, load_config
 from xdr.evaluation.metrics import (
     brier_decomposition,
     expected_calibration_error,
@@ -35,8 +35,6 @@ from xdr.evaluation.metrics import (
 )
 from xdr.models.calibrate import MIN_ROWS_FOR_ISOTONIC, fit_calibrator
 from xdr.models.train import LABEL_COLUMNS, prepare_matrix
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def load_target_features(config: XdrConfig) -> pd.DataFrame:

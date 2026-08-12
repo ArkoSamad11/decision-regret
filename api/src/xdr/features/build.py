@@ -7,15 +7,12 @@ CLI: python -m xdr.features.build --config base.yaml
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 import pandas as pd
 
-from xdr.config import Competition, XdrConfig, load_config
+from xdr.config import REPO_ROOT, Competition, XdrConfig, load_config
 from xdr.features.actions import build_action_features
 from xdr.features.labels import build_labels
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def load_competition_actions(comp: Competition, config: XdrConfig) -> pd.DataFrame:

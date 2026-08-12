@@ -31,7 +31,7 @@ import joblib
 import lightgbm as lgb
 import pandas as pd
 
-from xdr.config import XdrConfig, load_config
+from xdr.config import REPO_ROOT, XdrConfig, load_config
 from xdr.counterfactual.options import (
     compute_regret,
     enumerate_candidates,
@@ -40,8 +40,6 @@ from xdr.counterfactual.options import (
 )
 from xdr.models.support import load_support_index, numeric_feature_columns, support_score
 from xdr.models.train import LABEL_COLUMNS, load_features, prepare_matrix
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # Only these action types get a counterfactual set: "declined a pass/carry/
 # shot instead" is a coherent framing for them; for a duel, foul, or

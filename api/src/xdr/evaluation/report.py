@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 import joblib
 import lightgbm as lgb
 import pandas as pd
 
-from xdr.config import XdrConfig, load_config
+from xdr.config import REPO_ROOT, XdrConfig, load_config
 from xdr.evaluation.metrics import (
     brier_decomposition,
     expected_calibration_error,
@@ -23,8 +22,6 @@ from xdr.evaluation.metrics import (
     reliability_curve,
 )
 from xdr.models.train import LABEL_COLUMNS, load_features, prepare_matrix
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def evaluate_split(

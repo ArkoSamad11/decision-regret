@@ -1,7 +1,11 @@
-"""Config loading: `extends` resolution and deep-merge (SPEC.md §5)."""
+"""Config loading: `extends` resolution and deep-merge (SPEC.md §5), plus the
+repo-root resolution every path in the project is built on."""
+
+import importlib
 
 import pytest
 
+import xdr.config
 from xdr.config import load_config
 
 
@@ -32,3 +36,29 @@ def test_different_configs_hash_differently():
     base = load_config("base.yaml")
     transfer = load_config("transfer_euro24_to_weuro25.yaml")
     assert base.config_hash != transfer.config_hash
+
+
+def test_repo_root_finds_configs_by_default():
+    """The no-env-var path: walking up from the installed source has to land on
+    a checkout that actually contains configs/."""
+    assert (xdr.config.REPO_ROOT / "configs" / "base.yaml").exists()
+    assert xdr.config.CONFIG_DIR == xdr.config.REPO_ROOT / "configs"
+
+
+def test_xdr_root_env_var_overrides_repo_root(tmp_path, monkeypatch):
+    """The Docker path (api/Dockerfile). pip installs the package into
+    site-packages, where walking up from __file__ lands in the interpreter's
+    lib/ directory instead of a checkout -- artifacts/ then silently resolves
+    to nothing and every route serves empty. XDR_ROOT is the override, so it
+    has to actually win over the computed default.
+    """
+    monkeypatch.setenv("XDR_ROOT", str(tmp_path))
+    reloaded = importlib.reload(xdr.config)
+    try:
+        assert reloaded.REPO_ROOT == tmp_path.resolve()
+        assert reloaded.CONFIG_DIR == tmp_path.resolve() / "configs"
+    finally:
+        # Module-level constants: leaving the reloaded module in place would
+        # point every later test at tmp_path.
+        monkeypatch.delenv("XDR_ROOT")
+        importlib.reload(xdr.config)

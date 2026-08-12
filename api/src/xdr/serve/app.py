@@ -5,13 +5,12 @@ scores to zero, backed by a DuckDB file baked into the image (SPEC.md §5, §14)
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import duckdb
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from xdr.config import load_config
+from xdr.config import REPO_ROOT, load_config
 from xdr.serve import store
 from xdr.serve.schemas import (
     CalibrationReport,
@@ -20,8 +19,6 @@ from xdr.serve.schemas import (
     Moment,
     TransferReport,
 )
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 app = FastAPI(title="xDR API", description="Expected decision regret", version="0.1.0")
 
