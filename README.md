@@ -2,6 +2,9 @@
 
 **Players give away measurable value by choosing a worse action than one available to them. This measures how much, and then tests whether the measurement survives being moved to a competition the model never saw.**
 
+**Live dashboard:** https://decision-regret.vercel.app
+**Live API:** https://deploy-production-f3fe.up.railway.app ([`/health`](https://deploy-production-f3fe.up.railway.app/health), [`/matches`](https://deploy-production-f3fe.up.railway.app/matches))
+
 > **Status: M1-M5, M7, M8 live end to end; M6 (DeepSets encoder) deferred.**
 > Real data throughout: ingest, SPADL conversion, action features, VAEP-style
 > labels, a LightGBM baseline, isotonic calibration, a k-NN support gate, and

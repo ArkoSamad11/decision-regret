@@ -128,11 +128,25 @@ root resolution under a non-editable install."
 
 ## Status
 
-**Live.** The API is deployed on Railway and verified against real data:
-`/health`, `/matches`, `/matches/{id}/moments`, `/calibration`, and `/transfer`
-all return real Euro 2024 / Women's Euro 2025 numbers from the actual
-`xdr.duckdb` baked into the image, not `no_artifacts`. The first two deploy
-attempts failed for reasons now fixed and documented above and in
-DECISIONS.md: a missing `artifacts/` in the build context, and a
-`multimethod`/`pandera` import error that only surfaced on a genuinely clean
-install. Frontend deployment to Vercel is the remaining step.
+**Live, both sides.**
+
+- API (Railway): https://deploy-production-f3fe.up.railway.app
+- Dashboard (Vercel): https://decision-regret.vercel.app
+
+`/health`, `/matches`, `/matches/{id}/moments`, `/calibration`, and
+`/transfer` all return real Euro 2024 / Women's Euro 2025 numbers from the
+actual `xdr.duckdb` baked into the image, not `no_artifacts`. The dashboard
+renders all of it live through the Vercel rewrite, including the option fan
+and regret. The first two API deploy attempts failed for reasons now fixed
+and documented above and in DECISIONS.md: a missing `artifacts/` in the build
+context, and a `multimethod`/`pandera` import error that only surfaced on a
+genuinely clean install. The Vercel project's default SSO deployment
+protection was disabled (`vercel project protection disable --sso`) so the
+dashboard is actually publicly viewable rather than redirecting to a Vercel
+login page.
+
+**Not yet done:** a stable public domain for the Railway API itself (its URL
+is Railway's auto-generated one, tied to a project literally named "deploy"
+-- see DECISIONS.md for how that name happened); GitHub-based continuous
+deployment for either service (both were deployed via a one-off CLI upload,
+so a new commit does not automatically redeploy either side yet).

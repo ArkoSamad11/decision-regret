@@ -432,3 +432,26 @@ import-order workaround) that was applied to a live venv and worked, but wasn't 
 as a reproducible constraint until a second machine needed the identical fix. An
 environment fix isn't done until it's in a file that ships with the repo.
 
+---
+
+## 2026-08-12 — Frontend live on Vercel; disabled default SSO deployment protection
+
+**Context:** `vercel --prod` succeeded and returned a "READY" deployment, but the URL
+redirected every visitor -- including an unauthenticated browser tab, not just this
+session -- to a Vercel login page instead of the dashboard. `vercel project protection`
+showed `ssoProtection: {"deploymentType": "all_except_custom_domains"}`, a default Vercel
+applies to new projects under a team account: every deployment except ones on a verified
+custom domain requires the visitor to authenticate with Vercel first.
+**Decision:** `vercel project protection disable decision-regret --sso`. This is a public
+findings dashboard (the whole point of the README is the numbers being visible); requiring
+a Vercel login to view it defeats that.
+**Rejected:** Leaving protection on and telling the user to share a bypass link/token --
+adds a step for zero benefit on a project with no private data.
+**Reversibility:** cheap -- `vercel project protection enable ... --sso` reverts it.
+**Also noted:** deploying via `railway up` from an arbitrary path argument, rather than
+`cd`-ing into that directory first, creates a new disconnected project named after the
+path's directory rather than deploying to an already-linked one -- this is how the live
+API's Railway project ended up named "deploy" instead of "xdr-api" (see ARCHITECTURE.md).
+Left as-is: purely cosmetic, and renaming requires the web dashboard (no CLI subcommand
+for it in this Railway CLI version).
+
