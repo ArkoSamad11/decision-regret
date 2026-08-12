@@ -44,17 +44,23 @@ export default async function Page({
       <header style={{ marginBottom: "var(--space-4)" }}>
         <h1 style={{ marginBottom: "var(--space-1)" }}>xDR</h1>
         <p style={{ color: "var(--color-text-muted)", maxWidth: 640 }}>
-          Every on-ball action has alternatives the player declined. This pass ships the
-          calibration layer -- match-level Brier decomposition and reliability -- against a real
-          LightGBM baseline trained on UEFA Euro 2024, plus a cross-tournament transfer study
-          against UEFA Women&apos;s Euro 2025. The counterfactual option fan (declined
-          passes/carries/shots and the regret gap) is upcoming work; see docs/DECISIONS.md.
+          Every on-ball action has alternatives the player declined. This enumerates them from
+          the StatsBomb 360 freeze frame, scores each with the same calibrated LightGBM model
+          that scores the action taken, and reports the gap -- against UEFA Euro 2024, with a
+          cross-tournament transfer study against UEFA Women&apos;s Euro 2025.
+        </p>
+        <p style={{ color: "var(--color-text-muted)", maxWidth: 640, fontSize: "0.85rem" }}>
+          Regret here is an <strong>upper bound</strong>: every declined option is scored as if
+          it would have succeeded, so the gap is the most a player could plausibly have gained,
+          not what they were expected to gain. Options below the support floor come back
+          unscored rather than guessed at, and regret is withheld entirely -- never shown as
+          zero -- when either side of the subtraction is unsupported. See docs/DECISIONS.md.
         </p>
       </header>
 
       <section style={{ marginBottom: "var(--space-4)" }}>
         <h2 style={{ fontSize: "1rem", color: "var(--color-text-muted)", marginBottom: "var(--space-2)" }}>
-          Matches (ranked by mean action value -- regret ranking arrives with the counterfactual layer)
+          Matches (ranked by mean action value; moments within a match rank by regret)
         </h2>
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
           {matches.map((m) => (

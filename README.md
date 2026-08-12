@@ -188,7 +188,15 @@ structure the real training features go through — not reimplemented by hand
 **Not built (see docs/DECISIONS.md for scope and follow-up path):**
 freeze-frame DeepSets encoder (M6) and its ablation against the LightGBM
 baseline; a completion-probability model to replace the assume-success
-upper bound; Docker/CI/Vercel deployment (in progress).
+upper bound.
+
+**Deployment.** `api/Dockerfile` builds the API image from the repo root
+(it bakes `configs/` and `artifacts/` alongside the package), and
+`.github/workflows/ci.yml` runs ruff, pytest, the web typecheck, and the
+Next.js build on every push. Neither the image build nor a hosted deploy
+has been exercised yet — no container runtime was available on the machine
+this pass was built on, and no container host has been chosen (SPEC.md §14
+leaves it open, with Railway as the config-file assumption).
 
 ## Limitations
 
@@ -219,7 +227,7 @@ docs/    DATA.md (real coverage counts), DECISIONS.md (append-only log)
 ## Stack
 
 Python 3.12, LightGBM, scikit-learn, DuckDB, FastAPI, pytest, ruff.
-TypeScript, Next.js 15, React 19. PyTorch (for the DeepSets encoder), Docker,
-and CI are planned but not yet in this repository.
+TypeScript, Next.js 15, React 19. Docker and GitHub Actions CI are in the
+repository; PyTorch (for the DeepSets encoder) is not, since M6 is deferred.
 
 Data provided by StatsBomb under their open data terms.
